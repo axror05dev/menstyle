@@ -34,238 +34,277 @@
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>Checkout</h2>
-    <div class="muted">Savatni tekshiring va to'lov turini tanlang.</div>
+<div class="box">
+  <h2>Checkout</h2>
+  <div class="muted">Savatni tekshiring va to'lov turini tanlang.</div>
 
-    <h3 style="margin-top:18px;">Savat</h3>
-    <div id="cartList"></div>
+  <h3 style="margin-top:18px;">Savat</h3>
+  <div id="cartList"><div class="muted" style="padding:20px 0;text-align:center;">⏳ Yuklanmoqda...</div></div>
 
-    <div class="row" style="margin-top:12px;">
-      <button type="button" class="btnGray" id="backBtn">⬅️ Orqaga</button>
-      <button type="button" class="btnRed"  id="clearBtn">🗑 Savatni tozalash</button>
-    </div>
-
-    <div class="totalLine">
-      <div>Jami:</div>
-      <div id="totalSum">0 so'm</div>
-    </div>
-
-    <h3 style="margin-top:20px;">To'lov turi</h3>
-    <div class="pay">
-      <label><input type="radio" name="pay" value="cash" checked> Naqd pul <span class="badge">pending</span></label>
-      <label><input type="radio" name="pay" value="card"> Karta <span class="badge">demo</span></label>
-      <label><input type="radio" name="pay" value="payme"> Payme <span class="badge">demo</span></label>
-      <label><input type="radio" name="pay" value="click"> Click <span class="badge">demo</span></label>
-    </div>
-
-    <div id="cardBox" class="cardBox">
-      <label>Karta turi</label>
-      <select id="cardType">
-        <option value="uzcard">Uzcard</option>
-        <option value="humo">Humo</option>
-        <option value="visa">Visa</option>
-        <option value="mastercard">MasterCard</option>
-      </select>
-      <label>Karta raqam</label>
-      <input id="cardNumber" inputmode="numeric" placeholder="8600 1234 5678 9012">
-      <div class="row">
-        <div style="flex:1;"><label>MM/YY</label><input id="cardExp" placeholder="12/28"></div>
-        <div style="flex:1;"><label>CVV</label><input id="cardCvv" inputmode="numeric" placeholder="123"></div>
-      </div>
-      <div class="hint" id="cardHint">Uzcard: 8600..., Humo: 9860... (demo)</div>
-    </div>
-
-    <button type="button" id="orderBtn">Buyurtma berish</button>
-    <div class="muted" id="noteBox">Naqd: buyurtma 'pending' bo'ladi.</div>
+  <div class="row" style="margin-top:12px;">
+    <button type="button" class="btnGray" id="backBtn">⬅️ Orqaga</button>
+    <button type="button" class="btnRed"  id="clearBtn">🗑 Savatni tozalash</button>
   </div>
 
-  <script src="auth.js"></script>
-  <script type="module">
-    import { db } from "./firebase-config.js";
-    import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    window._db = db;
-    window._addDoc = addDoc;
-    window._collection = collection;
-  </script>
-  <script type="module" src="script.js"></script>
-  <script>
-    // Login tekshirish
-    if (localStorage.getItem("login") !== "true") {
-      location.href = "login.html";
-    }
+  <div class="totalLine">
+    <div>Jami:</div>
+    <div id="totalSum">0 so'm</div>
+  </div>
 
-    const cartList   = document.getElementById("cartList");
-    const totalSumEl = document.getElementById("totalSum");
-    const cardBox    = document.getElementById("cardBox");
-    const noteBox    = document.getElementById("noteBox");
-    const orderBtn   = document.getElementById("orderBtn");
-    const backBtn    = document.getElementById("backBtn");
-    const clearBtn   = document.getElementById("clearBtn");
-    const cardTypeEl = document.getElementById("cardType");
-    const cardNumEl  = document.getElementById("cardNumber");
-    const cardExpEl  = document.getElementById("cardExp");
-    const cardCvvEl  = document.getElementById("cardCvv");
-    const cardHintEl = document.getElementById("cardHint");
+  <h3 style="margin-top:20px;">To'lov turi</h3>
+  <div class="pay">
+    <label><input type="radio" name="pay" value="cash" checked> Naqd pul <span class="badge">pending</span></label>
+    <label><input type="radio" name="pay" value="card"> Karta <span class="badge">demo</span></label>
+    <label><input type="radio" name="pay" value="payme"> Payme <span class="badge">demo</span></label>
+    <label><input type="radio" name="pay" value="click"> Click <span class="badge">demo</span></label>
+  </div>
 
-    function money(n) { return Number(n||0).toLocaleString("uz-UZ") + " so'm"; }
+  <div id="cardBox" class="cardBox">
+    <label>Karta turi</label>
+    <select id="cardType">
+      <option value="uzcard">Uzcard</option>
+      <option value="humo">Humo</option>
+      <option value="visa">Visa</option>
+      <option value="mastercard">MasterCard</option>
+    </select>
+    <label>Karta raqam</label>
+    <input id="cardNumber" inputmode="numeric" placeholder="8600 1234 5678 9012">
+    <div class="row">
+      <div style="flex:1;"><label>MM/YY</label><input id="cardExp" placeholder="12/28"></div>
+      <div style="flex:1;"><label>CVV</label><input id="cardCvv" inputmode="numeric" placeholder="123"></div>
+    </div>
+    <div class="hint" id="cardHint">Uzcard: 8600..., Humo: 9860... (demo)</div>
+  </div>
 
-    function genOrderNo() {
-      const d = new Date();
-      const pad = v => String(v).padStart(2,"0");
-      return `MS-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Math.floor(100000+Math.random()*900000)}`;
-    }
-    function genCustomerId() {
-      const d = new Date();
-      const pad = v => String(v).padStart(2,"0");
-      return `U-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Math.floor(100000+Math.random()*900000)}`;
-    }
+  <button type="button" id="orderBtn" disabled>Buyurtma berish</button>
+  <div class="muted" id="noteBox">Naqd: buyurtma 'pending' bo'ladi.</div>
+</div>
 
-    function validateCard() {
-      const type = cardTypeEl.value;
-      const num  = cardNumEl.value.replace(/\D/g,"");
-      const exp  = cardExpEl.value.trim();
-      const cvv  = cardCvvEl.value.replace(/\D/g,"");
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-      if (num.length !== 16) return "Karta raqami 16 ta raqam bo'lsin";
-      if (type==="uzcard"    && !num.startsWith("8600")) return "Uzcard 8600 bilan boshlanadi";
-      if (type==="humo"      && !num.startsWith("9860")) return "Humo 9860 bilan boshlanadi";
-      if (type==="visa"      && !num.startsWith("4"))    return "Visa 4 bilan boshlanadi";
-      if (type==="mastercard") {
-        const f2=Number(num.slice(0,2)), f4=Number(num.slice(0,4));
-        if (!((f2>=51&&f2<=55)||(f4>=2221&&f4<=2720))) return "MasterCard 51-55 yoki 2221-2720 bilan boshlanadi";
-      }
-      if (!/^\d{2}\/\d{2}$/.test(exp)) return "MM/YY formatda kiriting (12/28)";
-      if (Number(exp.slice(0,2))<1||Number(exp.slice(0,2))>12) return "Oy 01-12 orasida bo'lsin";
-      if (cvv.length<3||cvv.length>4) return "CVV 3-4 ta raqam bo'lsin";
-      return null;
-    }
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5_2wx4pNKm_R0qYVHM4zBcfehKQsqiLw",
+    authDomain: "menstyle-cb582.firebaseapp.com",
+    projectId: "menstyle-cb582",
+    storageBucket: "menstyle-cb582.firebasestorage.app",
+    messagingSenderId: "603435098673",
+    appId: "1:603435098673:web:74b644b41f322129bd2b10"
+  };
 
-    function getOrCreateCustomerId(phone) {
-      const users = safeParse("users", {});
-      const p = String(phone||"").trim();
-      if (!p) return { customerId:"U-UNKNOWN", users };
-      const u = users[p] || { phone:p, createdAt:Date.now(), role:"user" };
-      if (!u.userId) u.userId = genCustomerId();
-      users[p] = u;
-      saveLocal("users", users);
-      return { customerId: u.userId, users };
-    }
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
 
-    function renderCart() {
-      const items = getCartDetailed();
-      const total = getCartTotal();
-      totalSumEl.textContent = money(total);
+  if (localStorage.getItem("login") !== "true") location.href = "login.html";
 
-      if (!items.length) {
-        cartList.innerHTML = `<div class="muted" style="padding:20px 0; text-align:center;">Savat bo'sh 😅</div>`;
-        orderBtn.disabled = true;
-        return;
-      }
-      orderBtn.disabled = false;
+  // ─── Helpers ──────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+  }
+  function money(n) { return Number(n||0).toLocaleString("uz-UZ") + " so'm"; }
+  function safeParse(key, fb) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):fb; } catch { return fb; } }
+  function saveLocal(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-      cartList.innerHTML = items.map(it => {
-        const safeImg = /^(https?:\/\/|data:image\/)/.test(it.img) ? it.img : "";
-        const imgHtml = safeImg
-          ? `<img class="pimg" src="${safeImg}" alt="">`
-          : `<div class="pimg" style="display:flex;align-items:center;justify-content:center;color:#bbb;font-size:11px;">Rasm yo'q</div>`;
+  function genOrderNo() {
+    const d=new Date(), pad=v=>String(v).padStart(2,"0");
+    return `MS-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Math.floor(100000+Math.random()*900000)}`;
+  }
+  function genCustomerId() {
+    const d=new Date(), pad=v=>String(v).padStart(2,"0");
+    return `U-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Math.floor(100000+Math.random()*900000)}`;
+  }
 
-        return `
-          <div class="cartItem">
-            <div class="left">
-              ${imgHtml}
-              <div>
-                <div class="pname">${escHtml(it.name)}</div>
-                <div class="pprice">${money(it.price)} × ${it.qty} = ${money(it.price*it.qty)}</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <div class="qtyBox">
-                <button type="button" class="qtyBtn" data-action="dec" data-id="${it.id}">➖</button>
-                <b>${it.qty}</b>
-                <button type="button" class="qtyBtn" data-action="inc" data-id="${it.id}">➕</button>
-              </div>
-              <button type="button" class="trash" data-action="remove" data-id="${it.id}">🗑</button>
-            </div>
-          </div>`;
-      }).join("");
-    }
+  // ─── Cart ─────────────────────────────────────────────────
+  function getCart() {
+    const c = safeParse("cart", []);
+    return Array.isArray(c) ? c : [];
+  }
+  function saveCart(cart) { saveLocal("cart", cart); updateCartBadge(cart); }
+  function updateCartBadge(cart) {
+    const total = (cart||getCart()).reduce((s,x)=>s+(Number(x.qty)||0),0);
+    document.querySelectorAll(".cart-count-badge").forEach(el=>el.textContent=total);
+  }
 
-    cartList.addEventListener("click", e => {
-      const btn = e.target.closest("button[data-action]");
-      if (!btn) return;
-      const action = btn.dataset.action, id = Number(btn.dataset.id);
-      if (action==="inc")    increaseQty(id);
-      if (action==="dec")    decreaseQty(id);
-      if (action==="remove") removeFromCart(id);
-      renderCart();
-    });
+  // ─── Firestore mahsulotlar ─────────────────────────────────
+  async function getProductsMap() {
+    const snap = await getDocs(collection(db, "products"));
+    const map  = new Map();
+    snap.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
+    return map;
+  }
 
-    function updateCardUI() {
-      const t = cardTypeEl.value;
-      const hints = { uzcard:"8600...", humo:"9860...", visa:"4xxx...", mastercard:"51-55 yoki 2221-2720..." };
-      const ph    = { uzcard:"8600 1234 5678 9012", humo:"9860 1234 5678 9012", visa:"4xxx xxxx xxxx xxxx", mastercard:"5xxx xxxx xxxx xxxx" };
-      cardNumEl.placeholder = ph[t] || "";
-      cardHintEl.textContent = `${t.charAt(0).toUpperCase()+t.slice(1)} (demo): ${hints[t]||""}`;
-    }
-
-    function updatePayUI() {
-      const val = document.querySelector('input[name="pay"]:checked').value;
-      cardBox.style.display = val==="card" ? "block" : "none";
-      if (val==="payme"||val==="click") noteBox.textContent = "Demo: buyurtma 'paid' bo'ladi.";
-      else if (val==="card")            noteBox.textContent = "Karta to'ldirilsa buyurtma 'paid' bo'ladi.";
-      else                              noteBox.textContent = "Naqd: buyurtma 'pending' bo'ladi.";
-    }
-
-    document.querySelectorAll('input[name="pay"]').forEach(r => r.addEventListener("change", updatePayUI));
-    cardTypeEl.addEventListener("change", updateCardUI);
-    backBtn.addEventListener("click",  () => location.href="index.html");
-    clearBtn.addEventListener("click", () => { if(confirm("Savatni tozalaysizmi?")){ clearCart(); renderCart(); } });
-
-    orderBtn.addEventListener("click", async () => {
-      const items = getCartDetailed();
-      if (!items.length) return alert("Savat bo'sh.");
-
-      const pay   = document.querySelector('input[name="pay"]:checked').value;
-      const total = getCartTotal();
-      const phone = localStorage.getItem("userPhone") || localStorage.getItem("lastPhone") || "";
-      const { customerId, users } = getOrCreateCustomerId(phone);
-      const u = users[phone] || {};
-      const customerName = (`${u.firstName||""} ${u.lastName||""}`).trim() || phone || "Foydalanuvchi";
-
-      let paid=false, status="pending";
-      if (pay==="cash") { paid=false; status="pending"; }
-      else if (pay==="card") {
-        const err = validateCard();
-        if (err) return alert(err);
-        paid=true; status="paid";
-      } else { paid=true; status="paid"; }
-
-      const order = {
-        id: Date.now(), orderNo: genOrderNo(),
-        customerId, phone, customerName, items, total,
-        pay, paid, status,
-        cardType: pay==="card" ? cardTypeEl.value : null,
-        createdAt: Date.now()
+  async function getCartDetailed() {
+    const cart = getCart();
+    if (!cart.length) return [];
+    const map = await getProductsMap();
+    return cart.map(c => {
+      const p = map.get(String(c.id));
+      return {
+        id:    String(c.id),
+        qty:   Number(c.qty)||0,
+        name:  p?.name  || "Noma'lum",
+        price: Number(p?.price)||0,
+        img:   p?.img   || "",
+        category: p?.category || ""
       };
+    }).filter(x => x.qty > 0);
+  }
 
-      // Firestore ga saqlash
-      if (window._addDoc && window._db && window._collection) {
-        try {
-          const docRef = await window._addDoc(window._collection(window._db, "orders"), order);
-          order.firestoreId = docRef.id;
-        } catch(e) { console.error("Firestore xatosi:", e); }
-      }
+  // ─── Validate card ────────────────────────────────────────
+  function validateCard() {
+    const type = document.getElementById("cardType").value;
+    const num  = document.getElementById("cardNumber").value.replace(/\D/g,"");
+    const exp  = document.getElementById("cardExp").value.trim();
+    const cvv  = document.getElementById("cardCvv").value.replace(/\D/g,"");
+    if (num.length !== 16) return "Karta raqami 16 ta raqam bo'lsin";
+    if (type==="uzcard"    && !num.startsWith("8600")) return "Uzcard 8600 bilan boshlanadi";
+    if (type==="humo"      && !num.startsWith("9860")) return "Humo 9860 bilan boshlanadi";
+    if (type==="visa"      && !num.startsWith("4"))    return "Visa 4 bilan boshlanadi";
+    if (!/^\d{2}\/\d{2}$/.test(exp)) return "MM/YY formatda kiriting (12/28)";
+    if (Number(exp.slice(0,2))<1||Number(exp.slice(0,2))>12) return "Oy 01-12 orasida bo'lsin";
+    if (cvv.length<3||cvv.length>4) return "CVV 3-4 ta raqam bo'lsin";
+    return null;
+  }
+
+  // ─── Render cart ──────────────────────────────────────────
+  const cartList   = document.getElementById("cartList");
+  const totalSumEl = document.getElementById("totalSum");
+  const orderBtn   = document.getElementById("orderBtn");
+
+  async function renderCart() {
+    cartList.innerHTML = `<div class="muted" style="padding:20px 0;text-align:center;">⏳ Yuklanmoqda...</div>`;
+    const items = await getCartDetailed();
+    const total = items.reduce((s,x)=>s+x.price*x.qty, 0);
+    totalSumEl.textContent = money(total);
+
+    if (!items.length) {
+      cartList.innerHTML = `<div class="muted" style="padding:20px 0;text-align:center;">Savat bo'sh 😅</div>`;
+      orderBtn.disabled = true;
+      return;
+    }
+    orderBtn.disabled = false;
+
+    cartList.innerHTML = items.map(it => {
+      const safeImg = /^https?:\/\//.test(it.img) ? it.img : "";
+      const imgHtml = safeImg
+        ? `<img class="pimg" src="${safeImg}" alt="">`
+        : `<div class="pimg" style="display:flex;align-items:center;justify-content:center;color:#bbb;font-size:11px;">Rasm yo'q</div>`;
+      return `
+        <div class="cartItem">
+          <div class="left">
+            ${imgHtml}
+            <div>
+              <div class="pname">${escHtml(it.name)}</div>
+              <div class="pprice">${money(it.price)} × ${it.qty} = ${money(it.price*it.qty)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="qtyBox">
+              <button type="button" class="qtyBtn" data-action="dec" data-id="${it.id}">➖</button>
+              <b>${it.qty}</b>
+              <button type="button" class="qtyBtn" data-action="inc" data-id="${it.id}">➕</button>
+            </div>
+            <button type="button" class="trash" data-action="remove" data-id="${it.id}">🗑</button>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  cartList.addEventListener("click", async e => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action, id = btn.dataset.id;
+    let cart = getCart();
+    if (action === "inc") {
+      const item = cart.find(x=>x.id===id);
+      if (item) item.qty++; else cart.push({id,qty:1});
+    } else if (action === "dec") {
+      const item = cart.find(x=>x.id===id);
+      if (item) { item.qty--; if(item.qty<=0) cart=cart.filter(x=>x.id!==id); }
+    } else if (action === "remove") {
+      cart = cart.filter(x=>x.id!==id);
+    }
+    saveCart(cart);
+    await renderCart();
+  });
+
+  // ─── Pay UI ───────────────────────────────────────────────
+  function updatePayUI() {
+    const val = document.querySelector('input[name="pay"]:checked').value;
+    document.getElementById("cardBox").style.display = val==="card" ? "block" : "none";
+    const noteBox = document.getElementById("noteBox");
+    if (val==="payme"||val==="click") noteBox.textContent = "Demo: buyurtma 'paid' bo'ladi.";
+    else if (val==="card")            noteBox.textContent = "Karta to'ldirilsa buyurtma 'paid' bo'ladi.";
+    else                              noteBox.textContent = "Naqd: buyurtma 'pending' bo'ladi.";
+  }
+
+  function updateCardUI() {
+    const type = document.getElementById("cardType").value;
+    const hints = { uzcard:"8600...", humo:"9860...", visa:"4xxx...", mastercard:"51-55..." };
+    const ph    = { uzcard:"8600 1234 5678 9012", humo:"9860 1234 5678 9012", visa:"4xxx xxxx xxxx xxxx", mastercard:"5xxx xxxx xxxx xxxx" };
+    document.getElementById("cardNumber").placeholder = ph[type]||"";
+    document.getElementById("cardHint").textContent = `${type} (demo): ${hints[type]||""}`;
+  }
+
+  document.querySelectorAll('input[name="pay"]').forEach(r=>r.addEventListener("change",updatePayUI));
+  document.getElementById("cardType").addEventListener("change", updateCardUI);
+  document.getElementById("backBtn").addEventListener("click", ()=>location.href="index.html");
+  document.getElementById("clearBtn").addEventListener("click", async ()=>{
+    if(confirm("Savatni tozalaysizmi?")){ saveCart([]); await renderCart(); }
+  });
+
+  // ─── Order ────────────────────────────────────────────────
+  orderBtn.addEventListener("click", async () => {
+    const items = await getCartDetailed();
+    if (!items.length) return alert("Savat bo'sh.");
+
+    const pay   = document.querySelector('input[name="pay"]:checked').value;
+    const total = items.reduce((s,x)=>s+x.price*x.qty, 0);
+    const phone = localStorage.getItem("userPhone") || "";
+
+    let paid=false, status="pending";
+    if (pay==="cash") { paid=false; status="pending"; }
+    else if (pay==="card") {
+      const err = validateCard();
+      if (err) return alert(err);
+      paid=true; status="paid";
+    } else { paid=true; status="paid"; }
+
+    // Customer ID
+    const users = safeParse("users", {});
+    const u = users[phone] || {};
+    if (!u.userId) { u.userId = genCustomerId(); users[phone]=u; saveLocal("users",users); }
+    const customerId = u.userId;
+    const customerName = (`${u.firstName||""} ${u.lastName||""}`).trim() || phone;
+
+    const order = {
+      id: Date.now(), orderNo: genOrderNo(),
+      customerId, phone, customerName, items, total,
+      pay, paid, status,
+      cardType: pay==="card" ? document.getElementById("cardType").value : null,
+      createdAt: Date.now()
+    };
+
+    orderBtn.disabled = true;
+    orderBtn.textContent = "Yuborilmoqda...";
+
+    try {
+      await addDoc(collection(db, "orders"), order);
       saveLocal("lastOrder", order);
+      saveCart([]);
+      location.href = "receipt.html";
+    } catch(e) {
+      alert("Xatolik: " + e.message);
+      orderBtn.disabled = false;
+      orderBtn.textContent = "Buyurtma berish";
+    }
+  });
 
-      clearCart();
-      location.href="receipt.html";
-    });
-
-    // Init
-    updatePayUI();
-    updateCardUI();
-    renderCart();
-  </script>
+  // ─── Init ─────────────────────────────────────────────────
+  updatePayUI();
+  updateCardUI();
+  renderCart();
+</script>
 </body>
 </html>
