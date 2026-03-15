@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kodni tasdiqlash | MenStyle</title>
+  <style>
+    body { font-family: Arial; background: #f6f7fb; margin: 0; padding: 20px; }
+    .box { max-width: 420px; margin: 60px auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+    h2 { margin: 0; }
+    .muted { opacity: .75; font-size: 13px; margin-top: 8px; }
+    label { display: block; margin-top: 14px; font-weight: 600; }
+    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; transition: border .2s; }
+    input[readonly] { background: #f3f4f6; }
+    input:focus:not([readonly]) { border-color: #111; }
+    button { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #111; color: #fff; margin-top: 12px; cursor: pointer; font-size: 15px; }
+    button:hover:not(:disabled) { background: #333; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .row { display: flex; gap: 10px; margin-top: 10px; }
+    .row button { background: #eee; color: #111; flex: 1; }
+    .row button:hover:not(:disabled) { background: #ddd; }
+    .err  { color: #e53935; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
+    .hint { background: #fffbe6; border: 1px solid #ffe082; border-radius: 10px; padding: 10px 14px; margin-top: 14px; font-size: 13px; }
+    .attempts { font-size: 12px; color: #e65100; margin-top: 6px; display: none; }
+  </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="box">
+    <h2>SMS kodni kiriting</h2>
+    <div class="muted">Telefoningizga kelgan 6 xonali kodni yozing.</div>
+
+    <label>Telefon raqam</label>
+    <input id="phone" readonly />
+
+    <label>SMS kod</label>
+    <input id="otp" placeholder="123456" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+
+    <div class="err"      id="errMsg"></div>
+    <div class="attempts" id="attemptsMsg"></div>
+
+    <button id="verifyBtn" type="button">✅ Tasdiqlash</button>
+
+    <div class="row">
+      <button id="resendBtn" type="button">🔄 Qayta yuborish</button>
+      <button id="backBtn"   type="button">⬅️ Orqaga</button>
+    </div>
+
+    <div class="hint">
+      💡 <b>Demo rejim:</b> OTP kodi brauzer konsolida chiqadi (F12 → Console).
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const phoneEl     = document.getElementById("phone");
+      const otpEl       = document.getElementById("otp");
+      const verifyBtn   = document.getElementById("verifyBtn");
+      const resendBtn   = document.getElementById("resendBtn");
+      const backBtn     = document.getElementById("backBtn");
+      const errMsg      = document.getElementById("errMsg");
+      const attemptsMsg = document.getElementById("attemptsMsg");
+
+      const lastPhone = (localStorage.getItem("lastPhone") || "").trim();
+      if (!lastPhone) { alert("Avval telefon raqamingizni kiriting."); location.href = "login.html"; return; }
+      phoneEl.value = lastPhone;
+
+      function showErr(msg) { errMsg.textContent = msg; errMsg.style.display = "block"; }
+      function hideErr()    { errMsg.style.display = "none"; attemptsMsg.style.display = "none"; }
+
+      // Blok holatini tekshir
+      function checkBlock() {
+        const c = bfCheck(BF_OTP_KEY);
+        if (c.blocked) {
+          verifyBtn.disabled = true;
+          showErr(`Juda ko'p urinish! ${c.left} soniyadan keyin qayta urinib ko'ring.`);
+          return true;
+        }
+        verifyBtn.disabled = false;
+        return false;
+      }
+      checkBlock();
+
+      otpEl.addEventListener("input", () => {
+        otpEl.value = otpEl.value.replace(/\D+/g, "").slice(0, 6);
+        hideErr();
+      });
+
+      verifyBtn.addEventListener("click", () => {
+        if (checkBlock()) return;
+
+        const otp = otpEl.value.trim();
+        if (otp.length !== 6) return showErr("Kod 6 xonali bo'lsin");
+
+        const ok = verifyOtpDemo(lastPhone, otp);
+
+        if (!ok) {
+          otpEl.value = "";
+          otpEl.focus();
+          // Urinishlar sonini ko'rsatish
+          const c = bfCheck(BF_OTP_KEY);
+          if (c.blocked) {
+            showErr(`Juda ko'p urinish! ${c.left} soniyadan keyin qayta urinib ko'ring.`);
+            verifyBtn.disabled = true;
+          } else {
+            showErr("Kod noto'g'ri! Qaytadan urinib ko'ring.");
+          }
+          return;
+        }
+
+        // OTP to'g'ri
+        const mode = String(localStorage.getItem("otpMode") || "login").toLowerCase();
+
+        if (mode === "register") {
+          let pending;
+          try { pending = JSON.parse(localStorage.getItem("pendingProfile")); } catch {}
+
+          if (!pending || !pending.phone) {
+            alert("Profil topilmadi. Qaytadan ro'yxatdan o'ting.");
+            location.href = "register.html";
+            return;
+          }
+
+          const users = getUsers();
+          users[pending.phone] = {
+            phone:     pending.phone,
+            firstName: pending.firstName || "",
+            lastName:  pending.lastName  || "",
+            dob:       pending.dob       || "",
+            createdAt: pending.createdAt || Date.now(),
+            role:      "user"
+          };
+          saveUsers(users);
+          localStorage.removeItem("pendingProfile");
+        }
+
+        setSession(lastPhone);
+        localStorage.removeItem("otpMode");
+        bfReset(BF_OTP_KEY);
+        location.href = "index.html";
+      });
+
+      resendBtn.addEventListener("click", () => {
+        const mode = String(localStorage.getItem("otpMode") || "login").toLowerCase();
+        if (mode === "register") {
+          let pending;
+          try { pending = JSON.parse(localStorage.getItem("pendingProfile")); } catch {}
+          sendOtpForRegister(lastPhone, pending || {});
+        } else {
+          sendOtpForLogin(lastPhone);
+        }
+        bfReset(BF_OTP_KEY);
+        hideErr();
+        alert("Kod qayta yuborildi. Konsolni tekshiring (F12).");
+        otpEl.value = "";
+        otpEl.focus();
+      });
+
+      backBtn.addEventListener("click", () => location.href = "login.html");
+      otpEl.addEventListener("keydown", e => { if (e.key === "Enter") verifyBtn.click(); });
+      otpEl.focus();
+    });
+  </script>
+</body>
+</html>

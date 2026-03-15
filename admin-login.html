@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin kirish | MenStyle</title>
+<style>
+body { font-family: Arial; background: #f6f7fb; margin: 0; padding: 20px; }
+.box { max-width: 420px; margin: 80px auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+h2 { margin: 0; }
+.muted { opacity: .75; font-size: 13px; margin-top: 8px; }
+label { margin-top: 14px; display: block; font-weight: 600; }
+input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; transition: border .2s; }
+input:focus { border-color: #111; }
+button { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #111; color: #fff; margin-top: 14px; cursor: pointer; font-size: 15px; }
+button:hover:not(:disabled) { background: #333; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+a { color: #111; font-weight: 600; text-decoration: none; }
+.err  { color: #e53935; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
+.warn { color: #e65100; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #fff3e0; border-radius: 8px; }
+</style>
+<script src="auth.js"></script>
+</head>
+<body>
+<div class="box">
+  <h2>🛠️ Admin kirish</h2>
+  <div class="muted">Admin panelga kirish uchun login va parolni kiriting</div>
+
+  <label>Login</label>
+  <input id="loginIn" autocomplete="username" placeholder="admin" />
+
+  <label>Parol</label>
+  <input id="passIn" type="password" autocomplete="current-password" placeholder="••••••" />
+
+  <div class="err"  id="errMsg"></div>
+  <div class="warn" id="warnMsg"></div>
+
+  <button id="loginBtn" onclick="doLogin()">Kirish</button>
+
+  <div class="muted" style="margin-top:14px;">
+    <a href="index.html">⬅️ Bosh sahifa</a>
+  </div>
+</div>
+
+<script>
+// Default credentials — faqat birinchi marta
+if (!localStorage.getItem("adminCred")) {
+  localStorage.setItem("adminCred", JSON.stringify({ login: "admin", pass: "123456" }));
+}
+
+// Allaqachon kirgan bo'lsa
+if (localStorage.getItem("adminSession") === "true") {
+  location.href = "admin.html";
+}
+
+const errMsg  = document.getElementById("errMsg");
+const warnMsg = document.getElementById("warnMsg");
+const loginBtn = document.getElementById("loginBtn");
+
+// Sahifa ochilganda blok bormi tekshir
+window.addEventListener("DOMContentLoaded", () => {
+  const check = bfCheck(BF_ADMIN_KEY);
+  if (check.blocked) {
+    loginBtn.disabled = true;
+    errMsg.textContent = `Juda ko'p urinish! ${check.left} soniyadan keyin qayta urinib ko'ring.`;
+    errMsg.style.display = "block";
+    // Har 5 soniyada yangilaymiz
+    const t = setInterval(() => {
+      const c = bfCheck(BF_ADMIN_KEY);
+      if (!c.blocked) { clearInterval(t); loginBtn.disabled = false; errMsg.style.display = "none"; }
+      else errMsg.textContent = `Juda ko'p urinish! ${c.left} soniyadan keyin qayta urinib ko'ring.`;
+    }, 5000);
+  }
+});
+
+function doLogin() {
+  const loginVal = document.getElementById("loginIn").value.trim();
+  const passVal  = document.getElementById("passIn").value;
+
+  errMsg.style.display  = "none";
+  warnMsg.style.display = "none";
+
+  if (!loginVal || !passVal) {
+    errMsg.textContent = "Login va parolni to'ldiring!";
+    errMsg.style.display = "block";
+    return;
+  }
+
+  const result = verifyAdminLogin(loginVal, passVal);
+
+  if (result.ok) {
+    localStorage.setItem("adminSession", "true");
+    location.href = "admin.html";
+  } else {
+    errMsg.textContent = result.msg;
+    errMsg.style.display = "block";
+    document.getElementById("passIn").value = "";
+    document.getElementById("passIn").focus();
+
+    // Bloklandimi?
+    const check = bfCheck(BF_ADMIN_KEY);
+    if (check.blocked) loginBtn.disabled = true;
+  }
+}
+
+document.getElementById("passIn").addEventListener("keydown",  e => { if(e.key==="Enter") doLogin(); });
+document.getElementById("loginIn").addEventListener("keydown", e => { if(e.key==="Enter") document.getElementById("passIn").focus(); });
+// Input o'zgarganda xato xabarni yashir
+[document.getElementById("loginIn"), document.getElementById("passIn")].forEach(el => {
+  el.addEventListener("input", () => { errMsg.style.display = "none"; });
+});
+</script>
+</body>
+</html>

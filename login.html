@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kirish | MenStyle</title>
+  <style>
+    body { font-family: Arial; background: #f6f7fb; margin: 0; padding: 20px; }
+    .box { max-width: 420px; margin: 80px auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+    label { display: block; margin-top: 14px; font-weight: 600; }
+    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; transition: border .2s; }
+    input:focus { border-color: #111; }
+    button { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #111; color: #fff; margin-top: 14px; cursor: pointer; font-size: 15px; }
+    button:hover:not(:disabled) { background: #333; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .muted { opacity: .75; font-size: 13px; margin-top: 10px; }
+    a { color: #111; font-weight: 700; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .err { color: #e53935; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
+  </style>
+  <!-- defer YO'Q: inline script auth.js funksiyalarini ishlatadi -->
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="box">
+    <h2 style="margin:0;">Kirish</h2>
+    <div class="muted">Telefon raqamingizni kiriting — SMS kod yuboriladi.</div>
+
+    <label>Telefon raqam</label>
+    <input id="phone" placeholder="+998901234567" autocomplete="tel" inputmode="tel" maxlength="13" />
+    <div class="err" id="errMsg"></div>
+
+    <button id="sendBtn" type="button">Kod yuborish</button>
+
+    <div class="muted">Yangi foydalanuvchimisiz? <a href="register.html">Ro'yxatdan o'tish</a></div>
+    <div class="muted"><a href="index.html">⬅️ Bosh sahifa</a></div>
+  </div>
+
+  <script>
+    // Allaqachon login qilgan bo'lsa
+    if (localStorage.getItem("login") === "true") {
+      location.href = "index.html";
+    }
+
+    localStorage.removeItem("pendingProfile");
+    localStorage.removeItem("otpMode");
+
+    const phoneInput = document.getElementById("phone");
+    const sendBtn    = document.getElementById("sendBtn");
+    const errMsg     = document.getElementById("errMsg");
+
+    const lastPhone = localStorage.getItem("lastPhone");
+    if (lastPhone) phoneInput.value = lastPhone;
+
+    function showErr(msg) { errMsg.textContent = msg; errMsg.style.display = "block"; }
+    function hideErr()    { errMsg.style.display = "none"; }
+
+    phoneInput.addEventListener("input", () => {
+      phoneInput.value = phoneInput.value.replace(/[^\d+]/g, "").slice(0, 13);
+      hideErr();
+    });
+
+    function sendCode() {
+      hideErr();
+      const phone = normPhone(phoneInput.value);
+
+      if (!isUzPhone(phone)) {
+        return showErr("Telefon raqamni +998XXXXXXXXX formatda kiriting");
+      }
+
+      const users = getUsers();
+      if (!users[phone]) {
+        return showErr("Bu raqam ro'yxatdan o'tmagan. Avval ro'yxatdan o'ting.");
+      }
+
+      sendBtn.disabled = true;
+      localStorage.setItem("lastPhone", phone);
+
+      try {
+        sendOtpForLogin(phone);
+        location.href = "otp.html";
+      } catch(e) {
+        showErr("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendCode);
+    phoneInput.addEventListener("keydown", e => { if (e.key === "Enter") sendCode(); });
+  </script>
+</body>
+</html>

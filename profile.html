@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil | MenStyle</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f6f7fb; color: #111; }
+
+    /* ── Header ── */
+    header { background: #111; color: #fff; padding: 0 20px; }
+    .header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 58px; gap: 12px; }
+    .brand { font-size: 18px; font-weight: 900; color: #fff; text-decoration: none; }
+    .brand span { color: #ffd600; }
+    .hbtn { background: rgba(255,255,255,.12); color: #fff; border: 0; padding: 7px 14px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 700; text-decoration: none; display: inline-block; }
+    .hbtn:hover { background: rgba(255,255,255,.22); }
+
+    /* ── Layout ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 24px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width:640px) { .page { grid-template-columns: 1fr; } }
+
+    /* ── Card ── */
+    .card { background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+    .card h2 { font-size: 17px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+    /* ── Form ── */
+    label  { display: block; font-size: 13px; font-weight: 600; color: #555; margin-top: 14px; }
+    input  { width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; margin-top: 5px; outline: none; font-size: 14px; transition: border .2s; }
+    input:focus { border-color: #111; }
+    input[readonly] { background: #f7f7f7; cursor: default; }
+    .chip { background: #f1f3f7; padding: 9px 14px; border-radius: 10px; font-weight: 700; font-size: 15px; margin-top: 6px; display: inline-block; }
+
+    /* ── Buttons ── */
+    .btn     { width: 100%; padding: 12px; border: 0; border-radius: 11px; cursor: pointer; font-size: 14px; font-weight: 700; margin-top: 14px; }
+    .btn-dark{ background: #111; color: #fff; }
+    .btn-dark:hover { background: #333; }
+    .btn-gray{ background: #f0f0f0; color: #111; }
+    .btn-gray:hover { background: #e0e0e0; }
+    .btn-red { background: #ffecec; color: #c62828; }
+    .btn-red:hover { background: #ffd6d6; }
+    .row2 { display: flex; gap: 10px; margin-top: 14px; }
+    .row2 .btn { margin-top: 0; flex: 1; }
+
+    /* ── Orders ── */
+    .order-card { border: 1.5px solid #eee; border-radius: 12px; padding: 14px; margin-top: 12px; }
+    .order-card:first-child { margin-top: 0; }
+    .o-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .o-no   { font-weight: 800; font-size: 14px; }
+    .o-date { font-size: 12px; color: #888; }
+    .pill   { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill-paid     { background: #e8fff0; color: #1b7a3e; }
+    .pill-pending  { background: #fff6df; color: #b06000; }
+    .pill-cancelled{ background: #ffecec; color: #c62828; }
+    .pill-refunded  { background: #e8f4fd; color: #1565c0; }
+    .o-items { margin-top: 8px; font-size: 13px; color: #555; line-height: 1.6; }
+    .o-total { margin-top: 6px; font-weight: 800; font-size: 14px; }
+    .o-delivery { margin-top: 6px; font-size: 12px; color: #666; }
+    .o-delivery b { color: #111; }
+    .cancel-btn { margin-top: 10px; padding: 7px 14px; border: 0; border-radius: 8px; background: #ffecec; color: #c62828; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .cancel-btn:hover { background: #ffd6d6; }
+    .empty-orders { text-align: center; padding: 30px 0; color: #bbb; font-size: 14px; }
+
+    /* ── Alerts ── */
+    .err { background: #ffecec; color: #c62828; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-top: 10px; display: none; }
+    .suc { background: #e8fff0; color: #1b7a3e; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-top: 10px; display: none; }
+  </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="brand" href="index.html">Men<span>Style</span></a>
+    <div style="display:flex;gap:8px;">
+      <a class="hbtn" href="index.html">⬅️ Orqaga</a>
+      <button class="hbtn" onclick="doLogout()">🚪 Chiqish</button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── Profil ma'lumotlari ── -->
+  <div class="card">
+    <h2>👤 Profil sozlamalari</h2>
+
+    <label>Telefon</label>
+    <div class="chip" id="phoneChip">—</div>
+
+    <label>Ism</label>
+    <input id="firstName" placeholder="Ismingiz" maxlength="50" />
+
+    <label>Familya</label>
+    <input id="lastName" placeholder="Familyangiz" maxlength="50" />
+
+    <label>Tug'ilgan yil</label>
+    <input id="birthYear" type="number" placeholder="2000" inputmode="numeric" min="1900" max="2020" />
+
+    <label>Manzil (yetkazish uchun)</label>
+    <input id="address" placeholder="Toshkent, Chilonzor, ..." maxlength="150" />
+
+    <div class="err" id="errMsg"></div>
+    <div class="suc" id="sucMsg"></div>
+
+    <button class="btn btn-dark" onclick="saveProfile()">💾 Saqlash</button>
+    <div class="row2">
+      <button class="btn btn-gray" onclick="location.href='index.html'">🏠 Bosh sahifa</button>
+      <button class="btn btn-red"  onclick="doLogout()">🚪 Chiqish</button>
+    </div>
+  </div>
+
+  <!-- ── Buyurtmalar tarixi ── -->
+  <div class="card">
+    <h2>📦 Buyurtmalar tarixi</h2>
+    <div id="ordersList"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── Session tekshirish ──────────────────────────────────────
+  const session = getSession();
+  if (!session) { location.href = "login.html"; }
+  const phone = session.phone;
+
+  // ── Profil yuklash ─────────────────────────────────────────
+  const users = getUsers();
+  const u = users[phone] || { phone };
+
+  document.getElementById("phoneChip").textContent = phone;
+  document.getElementById("firstName").value  = u.firstName  || "";
+  document.getElementById("lastName").value   = u.lastName   || "";
+  document.getElementById("birthYear").value  = u.birthYear  || "";
+  document.getElementById("address").value    = u.address    || "";
+
+  function showErr(msg) {
+    const el = document.getElementById("errMsg");
+    el.textContent = msg; el.style.display = "block";
+    document.getElementById("sucMsg").style.display = "none";
+  }
+  function showSuc(msg) {
+    const el = document.getElementById("sucMsg");
+    el.textContent = msg; el.style.display = "block";
+    document.getElementById("errMsg").style.display = "none";
+    setTimeout(() => el.style.display = "none", 2500);
+  }
+
+  function saveProfile() {
+    document.getElementById("errMsg").style.display = "none";
+    const fn  = document.getElementById("firstName").value.trim();
+    const ln  = document.getElementById("lastName").value.trim();
+    const by  = document.getElementById("birthYear").value.trim();
+    const adr = document.getElementById("address").value.trim();
+
+    if (!fn) return showErr("Ismni kiriting");
+    if (!ln) return showErr("Familyani kiriting");
+    if (by && !isValidBirthYear(by)) return showErr("Tug'ilgan yil noto'g'ri");
+
+    const allUsers = getUsers();
+    allUsers[phone] = {
+      ...(allUsers[phone] || { phone, createdAt: Date.now(), role: "user" }),
+      phone, firstName: fn, lastName: ln, birthYear: by, address: adr
+    };
+    saveUsers(allUsers);
+    showSuc("✅ Profil saqlandi!");
+  }
+
+  function doLogout() {
+    clearSession();
+    location.href = "login.html";
+  }
+
+  document.querySelectorAll("input").forEach(el => {
+    el.addEventListener("keydown", e => { if (e.key === "Enter") saveProfile(); });
+  });
+
+  // ── Buyurtmalar ────────────────────────────────────────────
+  function esc(s) {
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+  }
+  function money(n) { return Number(n||0).toLocaleString("uz-UZ") + " so'm"; }
+
+  // Yetkazish sanasini hisoblash: buyurtma sanasi + 3 ish kuni
+  function calcDelivery(createdAt) {
+    const d = new Date(createdAt || Date.now());
+    let added = 0;
+    while (added < 3) {
+      d.setDate(d.getDate() + 1);
+      const day = d.getDay();
+      if (day !== 0 && day !== 6) added++; // Dam olish kunlarini o'tkazib yuboramiz
+    }
+    // uz-UZ locale ba'zi brauzerlarda noto'g'ri chiqadi - manual format
+    const months = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function cancelOrder(orderId, status) {
+    if (status === "paid") {
+      if (!confirm("Bu buyurtma to'langan!\nBaribir bekor qilmoqchimisiz?\n(Pul qaytarish admin orqali amalga oshiriladi)")) return;
+    } else {
+      if (!confirm("Buyurtmani bekor qilmoqchimisiz?")) return;
+    }
+
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    const idx = orders.findIndex(o => String(o.id) === String(orderId));
+    if (idx < 0) return;
+
+    orders[idx].status    = "cancelled";
+    orders[idx].cancelled = true;
+    if (status === "paid") orders[idx].refundRequested = true;
+    localStorage.setItem("orders", JSON.stringify(orders));
+
+    // lastOrder ham yangilansin
+    const last = JSON.parse(localStorage.getItem("lastOrder") || "null");
+    if (last && String(last.id) === String(orderId)) {
+      last.status = "cancelled"; last.cancelled = true;
+      localStorage.setItem("lastOrder", JSON.stringify(last));
+    }
+
+    if (status === "paid") {
+      alert("Buyurtma bekor qilindi. Pul qaytarish uchun admin bilan bog'laning.");
+    }
+    renderOrders();
+  }
+  window.cancelOrder = cancelOrder;
+
+  function renderOrders() {
+    const list = document.getElementById("ordersList");
+    let orders = [];
+    try { orders = JSON.parse(localStorage.getItem("orders") || "[]"); } catch {}
+
+    // Faqat shu foydalanuvchi buyurtmalari
+    const mine = orders
+      .filter(o => o.phone === phone)
+      .sort((a,b) => Number(b.createdAt||0) - Number(a.createdAt||0));
+
+    if (!mine.length) {
+      list.innerHTML = `<div class="empty-orders">📭<br>Hali buyurtma yo'q</div>`;
+      return;
+    }
+
+    list.innerHTML = mine.map(o => {
+      const status    = o.status || (o.paid ? "paid" : "pending");
+      const pillClass = status==="paid" ? "pill-paid"
+        : status==="cancelled" ? "pill-cancelled"
+        : status==="refunded"  ? "pill-refunded"
+        : "pill-pending";
+      const statusLbl = status==="paid"      ? "✅ To'langan"
+        : status==="cancelled" ? "❌ Bekor qilingan"
+        : status==="refunded"  ? "↩️ Pul qaytarildi"
+        : "⏳ Kutilmoqda";
+
+      const itemsHtml = Array.isArray(o.items)
+        ? o.items.map(i => `${esc(i.name)} × ${i.qty}`).join(", ")
+        : "—";
+
+      const deliveryDate = calcDelivery(o.createdAt);
+      const deliveryHtml = status !== "cancelled"
+        ? `<div class="o-delivery">🚚 Taxminiy yetkazish: <b>${deliveryDate}</b></div>`
+        : "";
+
+      let cancelHtml = "";
+      if (status === "cancelled") {
+        cancelHtml = `<div style="margin-top:8px;font-size:12px;color:#c62828;font-weight:600;">❌ Buyurtma bekor qilingan</div>`;
+      } else if (status === "refunded") {
+        cancelHtml = `<div style="margin-top:8px;font-size:12px;color:#1565c0;font-weight:600;">↩️ Pul qaytarildi</div>`;
+      } else {
+        cancelHtml = `<button class="cancel-btn" onclick="cancelOrder(${Number(o.id)}, '${esc(status)}')">❌ Bekor qilish</button>`;
+      }
+
+      return `
+        <div class="order-card">
+          <div class="o-head">
+            <span class="o-no">№ ${esc(String(o.orderNo||o.id))}</span>
+            <span class="pill ${pillClass}">${statusLbl}</span>
+          </div>
+          <div class="o-date">${(function(ts){
+            const d = new Date(ts||Date.now());
+            const months = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
+            const pad = v => String(v).padStart(2,"0");
+            return d.getDate()+" "+months[d.getMonth()]+" "+d.getFullYear()+", "+pad(d.getHours())+":"+pad(d.getMinutes());
+          })(o.createdAt)}</div>
+          <div class="o-items">${itemsHtml}</div>
+          <div class="o-total">Jami: ${money(o.total)}</div>
+          ${deliveryHtml}
+          ${cancelHtml}
+        </div>`;
+    }).join("");
+  }
+
+  renderOrders();
+</script>
+</body>
+</html>

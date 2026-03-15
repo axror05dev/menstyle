@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel | MenStyle</title>
+  <style>
+    body{font-family:Arial; background:#f6f7fb; margin:0; padding:20px;}
+    .wrap{max-width:1100px; margin:0 auto;}
+    .top{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+    .card{background:#fff; padding:16px; border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,.06); margin-top:14px;}
+    input, select{width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; outline:none; margin-top:6px;}
+    label{font-size:14px; opacity:.8;}
+    .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+    button{padding:10px 14px; border:0; border-radius:10px; cursor:pointer;}
+    .btn{background:#111; color:#fff;}
+    .btn-red{background:#e53935; color:#fff;}
+    .btn-gray{background:#eee; color:#111;}
+    table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px;}
+    th, td{padding:12px; border-bottom:1px solid #eee; text-align:left; vertical-align:top;}
+    th{background:#fafafa; font-weight:600;}
+    .muted{opacity:.7; font-size:13px;}
+    .row{display:flex; gap:10px; flex-wrap:wrap;}
+    .pill{display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; background:#f1f3f7;}
+    .pill-paid{background:#e8fff0;}
+    .pill-pending{background:#fff6df;}
+    @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:520px){ .grid{grid-template-columns:1fr;} }
+  </style>
+
+  <!-- ✅ Guard: adminSession bo'lmasa kirgizmaydi -->
+  <script>
+    if (localStorage.getItem("adminSession") !== "true") {
+      location.href = "admin-login.html";
+    }
+  </script>
+
+  <script type="module" src="admin.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1 style="margin:0;">Admin Panel</h1>
+        <div class="muted">MenStyle — mahsulotlar, buyurtmalar va admin sozlamalari</div>
+      </div>
+      <div class="row">
+        <a href="index.html"><button class="btn-gray" type="button">⬅️ Bosh sahifa</button></a>
+        <button class="btn" type="button" onclick="adminLogout()">🚪 Chiqish</button>
+      </div>
+    </div>
+
+    <!-- Admin login+parol o‘zgartirish -->
+    <div class="card">
+      <h2 style="margin-top:0;">Admin login/parolni o‘zgartirish</h2>
+      <div class="grid">
+        <div>
+          <label>Eski login</label>
+          <input id="oldLogin" placeholder="Eski login" />
+        </div>
+        <div>
+          <label>Eski parol</label>
+          <input id="oldPass" type="password" placeholder="Eski parol" />
+        </div>
+        <div>
+          <label>Yangi login</label>
+          <input id="newLogin" placeholder="Yangi login (kamida 3 belgi)" />
+        </div>
+        <div>
+          <label>Yangi parol</label>
+          <input id="newPass" type="password" placeholder="Yangi parol (kamida 6 belgi)" />
+        </div>
+      </div>
+
+      <button class="btn" type="button" style="margin-top:12px; width:100%;" onclick="doChangeAdminCred()">
+        Saqlash
+      </button>
+
+      <div class="muted" style="margin-top:8px;">
+        Eslatma: login/parol localStorage’da <b>adminCred</b> ichida saqlanadi.
+      </div>
+    </div>
+
+    <!-- Mahsulot qo‘shish -->
+    <div class="card">
+      <h2 style="margin-top:0;">Mahsulot qo‘shish</h2>
+
+      <div class="grid">
+        <div>
+          <label>Nomi</label>
+          <input id="pName" placeholder="Masalan: Futbolka" />
+        </div>
+
+        <div>
+          <label>Narxi (so'm)</label>
+          <input id="pPrice" type="number" placeholder="150000" />
+        </div>
+
+        <div>
+          <label>Kategoriya</label>
+          <select id="pCategory">
+            <option value="Futbolka">Futbolka</option>
+            <option value="Kostyum">Kostyum</option>
+            <option value="Shim">Shim</option>
+            <option value="Krasovka">Krasovka</option>
+            <option value="Paypoq">Paypoq</option>
+            <option value="Sumka">Sumka</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Rasm URL</label>
+          <input id="pImg" placeholder="https://..." />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="btn" type="button" onclick="addProduct()">➕ Qo‘shish</button>
+        <button class="btn-red" type="button" onclick="clearProducts()">🗑️ Hammasini o‘chirish</button>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">
+        Mahsulotlar localStorage → <b>products</b> ichida saqlanadi.
+      </div>
+    </div>
+
+    <!-- Mahsulotlar ro‘yxati -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Mahsulotlar ro‘yxati</h2>
+        <div class="muted">Jami: <span id="count">0</span> ta</div>
+      </div>
+
+      <div style="margin-top:12px; overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nomi</th>
+              <th>Narxi</th>
+              <th>Kategoriya</th>
+              <th>Rasm</th>
+              <th>Amal</th>
+            </tr>
+          </thead>
+          <tbody id="product-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Buyurtmalar -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">Buyurtmalar</h2>
+        <div class="muted">Jami: <span id="orderCount">0</span> ta</div>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">
+        Buyurtmalar checkout’dan <b>orders</b> ichiga saqlanadi.
+      </div>
+
+      <div style="margin-top:12px; overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Buyurtma</th>
+              <th>Mijoz ID</th>
+              <th>Telefon</th>
+              <th>To‘lov</th>
+              <th>Holat</th>
+              <th>Jami</th>
+              <th>Sana</th>
+              <th>Amal</th>
+            </tr>
+          </thead>
+          <tbody id="order-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

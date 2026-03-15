@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chek | MenStyle</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: Arial; background: #f6f7fb; padding: 20px; margin: 0; }
+    .box { max-width: 520px; margin: 20px auto; background: #fff; padding: 22px; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+    h2 { text-align: center; margin: 0; font-size: 20px; }
+    .subtitle { opacity: .65; font-size: 13px; margin-top: 6px; text-align: center; }
+    .line { border: none; border-top: 1px dashed #ddd; margin: 14px 0; }
+    .row  { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 14px; }
+    .row .label { opacity: .65; }
+    .row .val   { font-weight: 600; text-align: right; }
+    .item { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #f3f3f3; }
+    .item:last-child { border-bottom: none; }
+    .total-line { display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; margin-top: 14px; }
+    .pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .pill-paid    { background: #e8fff0; color: #1b7a3e; }
+    .pill-pending { background: #fff6df; color: #b06000; }
+    .btns { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .btns button { flex: 1; padding: 12px; border: 0; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; }
+    .btn-home  { background: #eee; color: #111; }
+    .btn-print { background: #111; color: #fff; }
+    .btn-home:hover  { background: #ddd; }
+    .btn-print:hover { background: #333; }
+    .empty-msg { text-align: center; padding: 30px 0; color: #999; }
+    .empty-msg a { color: #111; font-weight: 700; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .btns { display: none; }
+      .box  { box-shadow: none; margin: 0; border-radius: 0; padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>✅ MenStyle Chek</h2>
+    <div class="subtitle">Buyurtmangiz qabul qilindi!</div>
+
+    <hr class="line">
+    <div id="meta"></div>
+    <hr class="line">
+    <div id="items"></div>
+    <hr class="line">
+    <div class="total-line">
+      <div>Jami:</div>
+      <div id="totalEl">—</div>
+    </div>
+
+    <div class="btns">
+      <button class="btn-home"  type="button" onclick="location.href='index.html'">🏠 Bosh sahifa</button>
+      <button class="btn-print" type="button" onclick="window.print()">🖨️ Chop etish (PDF)</button>
+    </div>
+    <div id="cancelBox" style="margin-top:10px;display:none;">
+      <button type="button" onclick="cancelThisOrder()"
+        style="width:100%;padding:11px;border:0;border-radius:10px;background:#ffecec;color:#c62828;cursor:pointer;font-weight:700;font-size:14px;">
+        ❌ Buyurtmani bekor qilish
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ── Helpers ──────────────────────────────────────────────
+    function esc(str) {
+      return String(str || "")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+    }
+    function money(n) { return Number(n||0).toLocaleString("uz-UZ") + " so'm"; }
+    function fmtTime(ts) { return new Date(ts || Date.now()).toLocaleString("uz-UZ"); }
+    function cardLabel(v) {
+      return { uzcard:"Uzcard", humo:"Humo", visa:"Visa", mastercard:"MasterCard" }[String(v||"").toLowerCase()] || esc(v) || "—";
+    }
+    function sp(key, fb) {
+      try { return JSON.parse(localStorage.getItem(key)) ?? fb; } catch { return fb; }
+    }
+
+    // ── Login tekshiruvi ──────────────────────────────────────
+    if (localStorage.getItem("login") !== "true") {
+      location.href = "login.html";
+    }
+
+    // ── Order olish ───────────────────────────────────────────
+    let order = sp("lastOrder", null);
+
+    // Fallback: orders massividan oxirgisini olish
+    if (!order || !Array.isArray(order.items) || !order.items.length) {
+      const orders = sp("orders", []);
+      if (Array.isArray(orders) && orders.length) {
+        order = orders[orders.length - 1];
+      }
+    }
+
+    // Agar orders ichida yangilangan holati bo'lsa, uni olamiz
+    if (order) {
+      const orders = sp("orders", []);
+      if (Array.isArray(orders)) {
+        const fresh = orders.find(o => String(o.id) === String(order.id));
+        if (fresh) order = fresh;
+      }
+    }
+
+    // ── Render ────────────────────────────────────────────────
+    const metaEl  = document.getElementById("meta");
+    const itemsEl = document.getElementById("items");
+    const totalEl = document.getElementById("totalEl");
+
+    if (!order || !Array.isArray(order.items) || !order.items.length) {
+      metaEl.innerHTML = `
+        <div class="empty-msg">
+          <div style="font-size:40px;">🛒</div>
+          <div style="margin-top:10px;">Chek topilmadi.</div>
+          <div style="margin-top:6px; font-size:13px;">
+            <a href="index.html">Bosh sahifaga qaytish</a>
+          </div>
+        </div>`;
+      totalEl.textContent = "0 so'm";
+    } else {
+      const status    = order.status || (order.paid ? "paid" : "pending");
+      const pillClass = status === "paid" ? "pill pill-paid" : "pill pill-pending";
+      const payText   = esc(order.pay || "—");
+      const cardExtra = order.pay === "card" ? ` (${cardLabel(order.cardType)})` : "";
+      const phone     = esc(order.phone || localStorage.getItem("userPhone") || "—");
+      const custId    = esc(order.customerId || "—");
+      const orderNo   = esc(String(order.orderNo || order.id || "—"));
+
+      metaEl.innerHTML = `
+        <div class="row"><span class="label">Buyurtma №</span><span class="val">${orderNo}</span></div>
+        <div class="row"><span class="label">Mijoz ID</span>   <span class="val">${custId}</span></div>
+        <div class="row"><span class="label">Telefon</span>    <span class="val">${phone}</span></div>
+        <div class="row"><span class="label">To'lov turi</span><span class="val">${payText}${cardExtra}</span></div>
+        <div class="row"><span class="label">Holat</span>      <span class="val"><span class="${pillClass}">${esc(status)}</span></span></div>
+        <div class="row"><span class="label">Sana</span>       <span class="val">${fmtTime(order.createdAt)}</span></div>
+      `;
+
+      itemsEl.innerHTML = order.items.map(i => `
+        <div class="item">
+          <div>${esc(i.name)} <span style="opacity:.6;">× ${Number(i.qty)||0}</span></div>
+          <div style="font-weight:600;">${money((i.price||0) * (i.qty||0))}</div>
+        </div>
+      `).join("");
+
+      totalEl.textContent = money(order.total);
+
+      // Bekor qilish tugmasini ko'rsatish (faqat pending)
+      if (status === 'pending') {
+        document.getElementById('cancelBox').style.display = 'block';
+      }
+    }
+    function cancelThisOrder() {
+      if (!order) return;
+      if (!confirm('Buyurtmani bekor qilmoqchimisiz?')) return;
+      const orders = sp('orders', []);
+      const idx = orders.findIndex(o => String(o.id) === String(order.id));
+      if (idx >= 0) {
+        orders[idx].status = 'cancelled';
+        orders[idx].cancelled = true;
+        localStorage.setItem('orders', JSON.stringify(orders));
+      }
+      order.status = 'cancelled';
+      order.cancelled = true;
+      localStorage.setItem('lastOrder', JSON.stringify(order));
+      alert('Buyurtma bekor qilindi.');
+      location.reload();
+    }
+  </script>
+</body>
+</html>

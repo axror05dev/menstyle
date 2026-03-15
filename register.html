@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ro'yxatdan o'tish | MenStyle</title>
+  <style>
+    body { font-family: Arial; background: #f6f7fb; margin: 0; padding: 20px; }
+    .box { max-width: 460px; margin: 60px auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+    h2 { margin: 0; }
+    label { display: block; margin-top: 14px; font-weight: 600; }
+    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; background: #fff; box-sizing: border-box; transition: border .2s; }
+    input:focus { border-color: #111; }
+    input.err-field { border-color: #e53935; }
+    .dob-row { display: flex; gap: 8px; margin-top: 8px; }
+    .dob-row input { margin-top: 0; }
+    button { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #111; color: #fff; margin-top: 16px; cursor: pointer; font-size: 15px; }
+    button:hover:not(:disabled) { background: #333; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .muted { opacity: .75; font-size: 13px; margin-top: 10px; }
+    a { color: #111; font-weight: 700; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .err  { color: #e53935; font-size: 13px; margin-top: 6px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
+    .hint { font-size: 12px; opacity: .6; margin-top: 4px; }
+  </style>
+  <!-- defer YO'Q -->
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="box">
+    <h2>Ro'yxatdan o'tish</h2>
+    <div class="muted">Ma'lumotlarni kiriting, SMS kod orqali tasdiqlaysiz.</div>
+
+    <label>Ism</label>
+    <input id="firstName" placeholder="Masalan: Axrorbek" autocomplete="given-name" maxlength="50" />
+
+    <label>Familya</label>
+    <input id="lastName" placeholder="Masalan: Qosimov" autocomplete="family-name" maxlength="50" />
+
+    <label>Tug'ilgan sana</label>
+    <div class="dob-row">
+      <input id="dd"   inputmode="numeric" placeholder="Kun (01)"  maxlength="2" style="flex:1;" />
+      <input id="mm"   inputmode="numeric" placeholder="Oy (01)"   maxlength="2" style="flex:1;" />
+      <input id="yyyy" inputmode="numeric" placeholder="Yil (2000)" maxlength="4" style="flex:2;" />
+    </div>
+    <div class="hint">Masalan: 15 / 06 / 2000</div>
+    <div class="err" id="dobErr"></div>
+
+    <label>Telefon raqam</label>
+    <input id="phone" placeholder="+998901234567" autocomplete="tel" inputmode="tel" maxlength="13" />
+    <div class="err" id="errMsg"></div>
+
+    <button id="sendBtn" type="button">Kod yuborish</button>
+
+    <div class="muted">Akkauntingiz bormi? <a href="login.html">Kirish</a></div>
+    <div class="muted"><a href="index.html">⬅️ Bosh sahifa</a></div>
+  </div>
+
+  <script>
+    const firstName = document.getElementById("firstName");
+    const lastName  = document.getElementById("lastName");
+    const dd        = document.getElementById("dd");
+    const mm        = document.getElementById("mm");
+    const yyyy      = document.getElementById("yyyy");
+    const phone     = document.getElementById("phone");
+    const sendBtn   = document.getElementById("sendBtn");
+    const errMsg    = document.getElementById("errMsg");
+    const dobErr    = document.getElementById("dobErr");
+
+    function showErr(msg)    { errMsg.textContent = msg; errMsg.style.display = "block"; }
+    function showDobErr(msg) { dobErr.textContent = msg; dobErr.style.display = "block"; }
+    function hideAll()       { errMsg.style.display = "none"; dobErr.style.display = "none"; }
+
+    // Faqat raqam + auto-focus
+    dd.addEventListener("input", () => {
+      dd.value = dd.value.replace(/\D/g, "").slice(0, 2);
+      if (dd.value.length === 2) mm.focus();
+      hideAll();
+    });
+    mm.addEventListener("input", () => {
+      let v = mm.value.replace(/\D/g, "").slice(0, 2);
+      if (Number(v) > 12) v = "12";   // oy 12 dan oshmasligi
+      mm.value = v;
+      if (mm.value.length === 2) yyyy.focus();
+      hideAll();
+    });
+    mm.addEventListener("blur", () => {
+      const v = Number(mm.value);
+      if (mm.value && (v < 1 || v > 12)) {
+        mm.classList.add("err-field");
+        showDobErr("Oy 01 dan 12 gacha bo'lsin");
+      } else {
+        mm.classList.remove("err-field");
+      }
+    });
+    yyyy.addEventListener("input", () => {
+      yyyy.value = yyyy.value.replace(/\D/g, "").slice(0, 4);
+      hideAll();
+    });
+    phone.addEventListener("input", () => {
+      phone.value = phone.value.replace(/[^\d+]/g, "").slice(0, 13);
+      hideAll();
+    });
+    [firstName, lastName].forEach(el => el.addEventListener("input", hideAll));
+
+    function sendRegisterOtp() {
+      hideAll();
+
+      const fn  = (firstName.value || "").trim();
+      const ln  = (lastName.value  || "").trim();
+      const d   = dd.value.trim();
+      const mo  = mm.value.trim();
+      const yr  = yyyy.value.trim();
+      const tel = normPhone(phone.value);
+
+      if (!fn)  return showErr("Ismni kiriting");
+      if (!ln)  return showErr("Familyani kiriting");
+
+      const dobErrMsg = isValidDob(d, mo, yr);
+      if (dobErrMsg) return showDobErr(dobErrMsg);
+
+      if (!isUzPhone(tel)) return showErr("Telefon raqamni +998XXXXXXXXX formatda kiriting");
+
+      // Allaqachon ro'yxatdan o'tganmi?
+      const users = getUsers();
+      if (users[tel]) {
+        showErr("Bu raqam allaqachon ro'yxatdan o'tgan. Login sahifasidan kiring.");
+        setTimeout(() => location.href = "login.html", 1500);
+        return;
+      }
+
+      const pendingProfile = {
+        phone:     tel,
+        firstName: fn,
+        lastName:  ln,
+        dob: `${String(d).padStart(2,"0")}.${String(mo).padStart(2,"0")}.${yr}`,
+        createdAt: Date.now()
+      };
+
+      sendBtn.disabled = true;
+      try {
+        sendOtpForRegister(tel, pendingProfile);
+        location.href = "otp.html";
+      } catch(e) {
+        showErr("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendRegisterOtp);
+    [firstName, lastName, dd, mm, yyyy, phone].forEach(el => {
+      el.addEventListener("keydown", e => { if (e.key === "Enter") sendRegisterOtp(); });
+    });
+  </script>
+</body>
+</html>
