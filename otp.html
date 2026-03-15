@@ -10,156 +10,133 @@
     h2 { margin: 0; }
     .muted { opacity: .75; font-size: 13px; margin-top: 8px; }
     label { display: block; margin-top: 14px; font-weight: 600; }
-    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; transition: border .2s; }
+    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; }
     input[readonly] { background: #f3f4f6; }
     input:focus:not([readonly]) { border-color: #111; }
     button { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #111; color: #fff; margin-top: 12px; cursor: pointer; font-size: 15px; }
-    button:hover:not(:disabled) { background: #333; }
     button:disabled { opacity: .5; cursor: not-allowed; }
     .row { display: flex; gap: 10px; margin-top: 10px; }
-    .row button { background: #eee; color: #111; flex: 1; }
-    .row button:hover:not(:disabled) { background: #ddd; }
-    .err  { color: #e53935; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
-    .hint { background: #fffbe6; border: 1px solid #ffe082; border-radius: 10px; padding: 10px 14px; margin-top: 14px; font-size: 13px; }
-    .attempts { font-size: 12px; color: #e65100; margin-top: 6px; display: none; }
+    .row button { background: #eee; color: #111; flex: 1; margin-top: 0; }
+    .err { color: #e53935; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
   </style>
-  <script src="auth.js"></script>
 </head>
 <body>
-  <div class="box">
-    <h2>SMS kodni kiriting</h2>
-    <div class="muted">Telefoningizga kelgan 6 xonali kodni yozing.</div>
+<div class="box">
+  <h2>SMS kodni kiriting</h2>
+  <div class="muted">Telefoningizga kelgan 6 xonali kodni yozing.</div>
 
-    <label>Telefon raqam</label>
-    <input id="phone" readonly />
+  <label>Telefon</label>
+  <input id="phoneEl" readonly />
 
-    <label>SMS kod</label>
-    <input id="otp" placeholder="123456" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+  <label>SMS kod</label>
+  <input id="otp" placeholder="123456" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+  <div class="err" id="errMsg"></div>
 
-    <div class="err"      id="errMsg"></div>
-    <div class="attempts" id="attemptsMsg"></div>
-
-    <button id="verifyBtn" type="button">✅ Tasdiqlash</button>
-
-    <div class="row">
-      <button id="resendBtn" type="button">🔄 Qayta yuborish</button>
-      <button id="backBtn"   type="button">⬅️ Orqaga</button>
-    </div>
-
-    <div class="hint">
-      💡 <b>Demo rejim:</b> OTP kodi brauzer konsolida chiqadi (F12 → Console).
-    </div>
+  <button id="verifyBtn">✅ Tasdiqlash</button>
+  <div class="row">
+    <button id="backBtn">⬅️ Orqaga</button>
   </div>
+</div>
 
-  <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      const phoneEl     = document.getElementById("phone");
-      const otpEl       = document.getElementById("otp");
-      const verifyBtn   = document.getElementById("verifyBtn");
-      const resendBtn   = document.getElementById("resendBtn");
-      const backBtn     = document.getElementById("backBtn");
-      const errMsg      = document.getElementById("errMsg");
-      const attemptsMsg = document.getElementById("attemptsMsg");
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-      const lastPhone = (localStorage.getItem("lastPhone") || "").trim();
-      if (!lastPhone) { alert("Avval telefon raqamingizni kiriting."); location.href = "login.html"; return; }
-      phoneEl.value = lastPhone;
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5_2wx4pNKm_R0qYVHM4zBcfehKQsqiLw",
+    authDomain: "menstyle-cb582.firebaseapp.com",
+    projectId: "menstyle-cb582",
+    storageBucket: "menstyle-cb582.firebasestorage.app",
+    messagingSenderId: "603435098673",
+    appId: "1:603435098673:web:74b644b41f322129bd2b10"
+  };
 
-      function showErr(msg) { errMsg.textContent = msg; errMsg.style.display = "block"; }
-      function hideErr()    { errMsg.style.display = "none"; attemptsMsg.style.display = "none"; }
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-      // Blok holatini tekshir
-      function checkBlock() {
-        const c = bfCheck(BF_OTP_KEY);
-        if (c.blocked) {
-          verifyBtn.disabled = true;
-          showErr(`Juda ko'p urinish! ${c.left} soniyadan keyin qayta urinib ko'ring.`);
-          return true;
-        }
+  const lastPhone = localStorage.getItem("lastPhone") || "";
+  const otpMode   = localStorage.getItem("otpMode") || "login";
+
+  if (!lastPhone) { location.href = "login.html"; }
+
+  document.getElementById("phoneEl").value = lastPhone;
+
+  const otpEl     = document.getElementById("otp");
+  const verifyBtn = document.getElementById("verifyBtn");
+  const errMsg    = document.getElementById("errMsg");
+  const backBtn   = document.getElementById("backBtn");
+
+  function showErr(msg) { errMsg.textContent = msg; errMsg.style.display = "block"; }
+  function hideErr()    { errMsg.style.display = "none"; }
+
+  otpEl.addEventListener("input", () => {
+    otpEl.value = otpEl.value.replace(/\D+/g, "").slice(0, 6);
+    hideErr();
+  });
+
+  // confirmationResult ni olish — login.html dan kelgan
+  const confirmationResult = window.opener?._confirmationResult || window._confirmationResult;
+
+  verifyBtn.addEventListener("click", async () => {
+    const code = otpEl.value.trim();
+    if (code.length !== 6) return showErr("Kod 6 xonali bo'lsin");
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = "Tekshirilmoqda...";
+
+    try {
+      // window._confirmationResult login.html da saqlangan
+      const cr = window._confirmationResult;
+      if (!cr) {
+        // Agar sahifa yangilangan bo'lsa — qayta yuborish kerak
+        showErr("Sessiya tugagan. Qaytib kod so'rang.");
         verifyBtn.disabled = false;
-        return false;
+        verifyBtn.textContent = "✅ Tasdiqlash";
+        return;
       }
-      checkBlock();
 
-      otpEl.addEventListener("input", () => {
-        otpEl.value = otpEl.value.replace(/\D+/g, "").slice(0, 6);
-        hideErr();
-      });
+      const userCredential = await cr.confirm(code);
+      const firebaseUser   = userCredential.user;
 
-      verifyBtn.addEventListener("click", () => {
-        if (checkBlock()) return;
-
-        const otp = otpEl.value.trim();
-        if (otp.length !== 6) return showErr("Kod 6 xonali bo'lsin");
-
-        const ok = verifyOtpDemo(lastPhone, otp);
-
-        if (!ok) {
-          otpEl.value = "";
-          otpEl.focus();
-          // Urinishlar sonini ko'rsatish
-          const c = bfCheck(BF_OTP_KEY);
-          if (c.blocked) {
-            showErr(`Juda ko'p urinish! ${c.left} soniyadan keyin qayta urinib ko'ring.`);
-            verifyBtn.disabled = true;
-          } else {
-            showErr("Kod noto'g'ri! Qaytadan urinib ko'ring.");
-          }
-          return;
-        }
-
-        // OTP to'g'ri
-        const mode = String(localStorage.getItem("otpMode") || "login").toLowerCase();
-
-        if (mode === "register") {
-          let pending;
-          try { pending = JSON.parse(localStorage.getItem("pendingProfile")); } catch {}
-
-          if (!pending || !pending.phone) {
-            alert("Profil topilmadi. Qaytadan ro'yxatdan o'ting.");
-            location.href = "register.html";
-            return;
-          }
-
-          const users = getUsers();
+      if (otpMode === "register") {
+        let pending;
+        try { pending = JSON.parse(localStorage.getItem("pendingProfile")); } catch {}
+        if (pending && pending.phone) {
+          const users = JSON.parse(localStorage.getItem("users") || "{}");
           users[pending.phone] = {
             phone:     pending.phone,
             firstName: pending.firstName || "",
             lastName:  pending.lastName  || "",
             dob:       pending.dob       || "",
             createdAt: pending.createdAt || Date.now(),
-            role:      "user"
+            role:      "user",
+            uid:       firebaseUser.uid
           };
-          saveUsers(users);
+          localStorage.setItem("users", JSON.stringify(users));
           localStorage.removeItem("pendingProfile");
         }
+      }
 
-        setSession(lastPhone);
-        localStorage.removeItem("otpMode");
-        bfReset(BF_OTP_KEY);
-        location.href = "index.html";
-      });
+      localStorage.setItem("login", "true");
+      localStorage.setItem("userPhone", lastPhone);
+      localStorage.removeItem("otpMode");
+      location.href = "index.html";
 
-      resendBtn.addEventListener("click", () => {
-        const mode = String(localStorage.getItem("otpMode") || "login").toLowerCase();
-        if (mode === "register") {
-          let pending;
-          try { pending = JSON.parse(localStorage.getItem("pendingProfile")); } catch {}
-          sendOtpForRegister(lastPhone, pending || {});
-        } else {
-          sendOtpForLogin(lastPhone);
-        }
-        bfReset(BF_OTP_KEY);
-        hideErr();
-        alert("Kod qayta yuborildi. Konsolni tekshiring (F12).");
-        otpEl.value = "";
-        otpEl.focus();
-      });
-
-      backBtn.addEventListener("click", () => location.href = "login.html");
-      otpEl.addEventListener("keydown", e => { if (e.key === "Enter") verifyBtn.click(); });
+    } catch(e) {
+      showErr("Kod noto'g'ri yoki muddati o'tgan!");
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = "✅ Tasdiqlash";
+      otpEl.value = "";
       otpEl.focus();
-    });
-  </script>
+    }
+  });
+
+  backBtn.addEventListener("click", () => {
+    location.href = otpMode === "register" ? "register.html" : "login.html";
+  });
+
+  otpEl.addEventListener("keydown", e => { if (e.key === "Enter") verifyBtn.click(); });
+  otpEl.focus();
+</script>
 </body>
 </html>

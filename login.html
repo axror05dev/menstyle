@@ -8,85 +8,91 @@
     body { font-family: Arial; background: #f6f7fb; margin: 0; padding: 20px; }
     .box { max-width: 420px; margin: 80px auto; background: #fff; padding: 24px; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
     label { display: block; margin-top: 14px; font-weight: 600; }
-    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; transition: border .2s; }
+    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-top: 8px; outline: none; box-sizing: border-box; }
     input:focus { border-color: #111; }
     button { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: #111; color: #fff; margin-top: 14px; cursor: pointer; font-size: 15px; }
-    button:hover:not(:disabled) { background: #333; }
     button:disabled { opacity: .5; cursor: not-allowed; }
     .muted { opacity: .75; font-size: 13px; margin-top: 10px; }
     a { color: #111; font-weight: 700; text-decoration: none; }
-    a:hover { text-decoration: underline; }
     .err { color: #e53935; font-size: 13px; margin-top: 8px; display: none; padding: 8px 12px; background: #ffecec; border-radius: 8px; }
   </style>
-  <!-- defer YO'Q: inline script auth.js funksiyalarini ishlatadi -->
-  <script src="auth.js"></script>
 </head>
 <body>
-  <div class="box">
-    <h2 style="margin:0;">Kirish</h2>
-    <div class="muted">Telefon raqamingizni kiriting — SMS kod yuboriladi.</div>
+<div class="box">
+  <h2 style="margin:0;">Kirish</h2>
+  <div class="muted">Telefon raqamingizni kiriting — SMS kod yuboriladi.</div>
 
-    <label>Telefon raqam</label>
-    <input id="phone" placeholder="+998901234567" autocomplete="tel" inputmode="tel" maxlength="13" />
-    <div class="err" id="errMsg"></div>
+  <label>Telefon raqam</label>
+  <input id="phone" placeholder="+998901234567" inputmode="tel" maxlength="13" />
+  <div class="err" id="errMsg"></div>
 
-    <button id="sendBtn" type="button">Kod yuborish</button>
+  <div id="recaptcha-container" style="margin-top:14px;"></div>
+  <button id="sendBtn">Kod yuborish</button>
 
-    <div class="muted">Yangi foydalanuvchimisiz? <a href="register.html">Ro'yxatdan o'tish</a></div>
-    <div class="muted"><a href="index.html">⬅️ Bosh sahifa</a></div>
-  </div>
+  <div class="muted">Yangi foydalanuvchimisiz? <a href="register.html">Ro'yxatdan o'tish</a></div>
+  <div class="muted"><a href="index.html">⬅️ Bosh sahifa</a></div>
+</div>
 
-  <script>
-    // Allaqachon login qilgan bo'lsa
-    if (localStorage.getItem("login") === "true") {
-      location.href = "index.html";
-    }
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    localStorage.removeItem("pendingProfile");
-    localStorage.removeItem("otpMode");
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5_2wx4pNKm_R0qYVHM4zBcfehKQsqiLw",
+    authDomain: "menstyle-cb582.firebaseapp.com",
+    projectId: "menstyle-cb582",
+    storageBucket: "menstyle-cb582.firebasestorage.app",
+    messagingSenderId: "603435098673",
+    appId: "1:603435098673:web:74b644b41f322129bd2b10"
+  };
 
-    const phoneInput = document.getElementById("phone");
-    const sendBtn    = document.getElementById("sendBtn");
-    const errMsg     = document.getElementById("errMsg");
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  auth.languageCode = "uz";
 
-    const lastPhone = localStorage.getItem("lastPhone");
-    if (lastPhone) phoneInput.value = lastPhone;
+  if (localStorage.getItem("login") === "true") location.href = "index.html";
 
-    function showErr(msg) { errMsg.textContent = msg; errMsg.style.display = "block"; }
-    function hideErr()    { errMsg.style.display = "none"; }
+  const phoneInput = document.getElementById("phone");
+  const sendBtn    = document.getElementById("sendBtn");
+  const errMsg     = document.getElementById("errMsg");
 
-    phoneInput.addEventListener("input", () => {
-      phoneInput.value = phoneInput.value.replace(/[^\d+]/g, "").slice(0, 13);
-      hideErr();
-    });
+  function showErr(msg) { errMsg.textContent = msg; errMsg.style.display = "block"; }
+  function hideErr()    { errMsg.style.display = "none"; }
 
-    function sendCode() {
-      hideErr();
-      const phone = normPhone(phoneInput.value);
+  phoneInput.addEventListener("input", () => {
+    phoneInput.value = phoneInput.value.replace(/[^\d+]/g, "").slice(0, 13);
+    hideErr();
+  });
 
-      if (!isUzPhone(phone)) {
-        return showErr("Telefon raqamni +998XXXXXXXXX formatda kiriting");
-      }
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+    size: "normal",
+    callback: () => {}
+  });
+  window.recaptchaVerifier.render();
 
-      const users = getUsers();
-      if (!users[phone]) {
-        return showErr("Bu raqam ro'yxatdan o'tmagan. Avval ro'yxatdan o'ting.");
-      }
+  sendBtn.addEventListener("click", async () => {
+    hideErr();
+    const phone = phoneInput.value.trim();
+    if (!/^\+998\d{9}$/.test(phone)) return showErr("Telefon +998XXXXXXXXX formatda kiriting");
 
-      sendBtn.disabled = true;
+    const users = JSON.parse(localStorage.getItem("users") || "{}");
+    if (!users[phone]) return showErr("Bu raqam ro'yxatdan o'tmagan. Avval ro'yxatdan o'ting.");
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Yuborilmoqda...";
+    try {
+      const result = await signInWithPhoneNumber(auth, phone, window.recaptchaVerifier);
+      window._confirmationResult = result;
+      sessionStorage.setItem("confirmationResult", "pending");
       localStorage.setItem("lastPhone", phone);
-
-      try {
-        sendOtpForLogin(phone);
-        location.href = "otp.html";
-      } catch(e) {
-        showErr("Xatolik yuz berdi. Qaytadan urinib ko'ring.");
-        sendBtn.disabled = false;
-      }
+      localStorage.setItem("otpMode", "login");
+      location.href = "otp.html";
+    } catch(e) {
+      showErr("Xatolik: " + e.message);
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Kod yuborish";
     }
-
-    sendBtn.addEventListener("click", sendCode);
-    phoneInput.addEventListener("keydown", e => { if (e.key === "Enter") sendCode(); });
-  </script>
+  });
+</script>
 </body>
 </html>
